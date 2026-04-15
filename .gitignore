@@ -6,3 +6,4 @@ __pycache__/
 analysis_outputs/
 watermarked_audios/
 datasets/
+.claude/
