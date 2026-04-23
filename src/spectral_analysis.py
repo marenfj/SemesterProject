@@ -16,9 +16,10 @@ ORIGINAL_ROOT = Path("datasets/ASVspoof5_partitions/audio_data")
 WATERMARKED_ROOT = Path("watermarked_audios")
 OUTPUT_ROOT = Path("analysis_outputs")
 
-for dataset_type in ["bonafide", "spoofed"]:
-    (OUTPUT_ROOT / dataset_type / "logmel").mkdir(parents=True, exist_ok=True)
-    (OUTPUT_ROOT / dataset_type / "stft").mkdir(parents=True, exist_ok=True)
+for model_type in ["audioseal", "wavMark"]:
+    for dataset_type in ["bonafide", "spoofed"]:
+        (OUTPUT_ROOT / model_type / dataset_type / "logmel").mkdir(parents=True, exist_ok=True)
+        (OUTPUT_ROOT / model_type / dataset_type / "stft").mkdir(parents=True, exist_ok=True)
 
 
 def load_audio_mono_resampled(path: Path, target_sr: int = TARGET_SR) -> tuple[np.ndarray, int]:
@@ -67,13 +68,13 @@ def score_difference(diff_map: np.ndarray) -> float:
     return float(np.mean(np.abs(diff_map)))
 
 
-def pair_files(dataset_type: str) -> list[tuple[Path, Path, str]]:
+def pair_files(model_type: str, dataset_type: str) -> list[tuple[Path, Path, str]]:
     """
     Returns list of:
     (original_path, watermarked_path, stem)
     """
     original_dir = ORIGINAL_ROOT / dataset_type
-    watermarked_dir = WATERMARKED_ROOT / dataset_type
+    watermarked_dir = WATERMARKED_ROOT / model_type / dataset_type
 
     pairs = []
 
@@ -170,14 +171,14 @@ def plot_triplet(
     plt.close(fig)
 
 
-def analyze_dataset_type(dataset_type: str) -> list[dict]:
-    pairs = pair_files(dataset_type)
+def analyze_dataset_type(model_type: str, dataset_type: str) -> list[dict]:
+    pairs = pair_files(model_type, dataset_type)
     results = []
 
-    print(f"Found {len(pairs)} matched pairs for {dataset_type}")
+    print(f"Found {len(pairs)} matched pairs for {model_type}/{dataset_type}")
 
     for i, (original_path, watermarked_path, stem) in enumerate(pairs, start=1):
-        print(f"[{dataset_type}] Processing {i}/{len(pairs)}: {stem}")
+        print(f"[{model_type}/{dataset_type}] Processing {i}/{len(pairs)}: {stem}")
         y_orig, sr_orig = load_audio_mono_resampled(original_path)
         y_wm, sr_wm = load_audio_mono_resampled(watermarked_path)
         assert sr_orig == sr_wm == TARGET_SR
@@ -195,6 +196,7 @@ def analyze_dataset_type(dataset_type: str) -> list[dict]:
 
         results.append(
             {
+                "model_type": model_type,
                 "dataset_type": dataset_type,
                 "stem": stem,
                 "original_path": str(original_path),
@@ -209,8 +211,8 @@ def analyze_dataset_type(dataset_type: str) -> list[dict]:
             logmel_wm,
             logmel_diff,
             TARGET_SR,
-            title_prefix=f"{dataset_type}:{stem}",
-            out_path=OUTPUT_ROOT / dataset_type / "logmel" / f"{stem}_logmel.png",
+            title_prefix=f"{model_type}/{dataset_type}:{stem}",
+            out_path=OUTPUT_ROOT / model_type / dataset_type / "logmel" / f"{stem}_logmel.png",
             representation="logmel",
         )
 
@@ -219,8 +221,8 @@ def analyze_dataset_type(dataset_type: str) -> list[dict]:
             stft_wm,
             stft_diff,
             TARGET_SR,
-            title_prefix=f"{dataset_type}:{stem}",
-            out_path=OUTPUT_ROOT / dataset_type / "stft" / f"{stem}_stft.png",
+            title_prefix=f"{model_type}/{dataset_type}:{stem}",
+            out_path=OUTPUT_ROOT / model_type / dataset_type / "stft" / f"{stem}_stft.png",
             representation="stft",
         )
 
@@ -238,24 +240,26 @@ def save_rankings_csv(results: list[dict], out_path: Path) -> None:
         writer.writerows(results)
 
 
-def print_top_examples(results: list[dict], dataset_type: str, score_key: str, top_k: int = 3) -> None:
-    filtered = [r for r in results if r["dataset_type"] == dataset_type]
+def print_top_examples(results: list[dict], model_type: str, dataset_type: str, score_key: str, top_k: int = 3) -> None:
+    filtered = [r for r in results if r["model_type"] == model_type and r["dataset_type"] == dataset_type]
     filtered = sorted(filtered, key=lambda x: x[score_key], reverse=True)
 
-    print(f"\nTop {top_k} {dataset_type} examples by {score_key}:")
+    print(f"\nTop {top_k} {model_type}/{dataset_type} examples by {score_key}:")
     for row in filtered[:top_k]:
         print(f"  {row['stem']}: {row[score_key]:.4f}")
 
 
 def spectral_analysis():
     all_results = []
-    all_results.extend(analyze_dataset_type("bonafide"))
-    all_results.extend(analyze_dataset_type("spoofed"))
+    for model_type in ["audioseal", "wavMark"]:
+        for dataset_type in ["bonafide", "spoofed"]:
+            all_results.extend(analyze_dataset_type(model_type, dataset_type))
 
     save_rankings_csv(all_results, OUTPUT_ROOT / "rankings.csv")
 
-    print_top_examples(all_results, "bonafide", "logmel_score", top_k=3)
-    print_top_examples(all_results, "bonafide", "stft_score", top_k=3)
-    print_top_examples(all_results, "spoofed", "logmel_score", top_k=3)
-    print_top_examples(all_results, "spoofed", "stft_score", top_k=3)
+    for model_type in ["audioseal", "wavMark"]:
+        print_top_examples(all_results, model_type, "bonafide", "logmel_score", top_k=3)
+        print_top_examples(all_results, model_type, "bonafide", "stft_score", top_k=3)
+        print_top_examples(all_results, model_type, "spoofed", "logmel_score", top_k=3)
+        print_top_examples(all_results, model_type, "spoofed", "stft_score", top_k=3)
 
