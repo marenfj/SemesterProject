@@ -19,10 +19,6 @@ python3.12 src/main.py
 
 There is no test suite and no linter configured. `test_wavmark.py` at the repo root is an ad-hoc shape-debugging script for the WavMark API, not a real test.
 
-### Dependency caveat
-
-`requirements.txt` is incomplete. The code also imports `wavmark` and `soundfile`, which must be installed manually (e.g. `pip install wavmark soundfile`). `startupscript.sh` will not install them.
-
 ### Working directory matters
 
 All input/output paths in `src/` are **relative** (`datasets/...`, `watermarked_audios/...`, `analysis_outputs/...`). Run scripts from the repo root, not from `src/`.
@@ -34,8 +30,8 @@ The pipeline is a three-stage chain orchestrated by `src/main.py`:
 1. `audiosealWatermarking.watermark_audios()` — writes `watermarked_audios/audioseal/{bonafide,spoofed}/<stem>_watermarked.flac`
 2. `wavmarkWatermarking.wavMark_watermark_audios()` — writes `watermarked_audios/wavmark/{bonafide,spoofed}/<stem>_watermarked.flac`
 3. `spectral_analysis.spectral_analysis()` — pairs originals with watermarked outputs, computes log-mel and STFT spectrograms + difference maps, writes PNG triplets to `analysis_outputs/<model>/<dataset>/{logmel,stft}/` and a `rankings.csv` ranking files by mean abs difference.
-
-Note that `spectral_analysis.py` looks for the wavmark output under the directory name **`wavMark`** (camelCase), while `wavmarkWatermarking.py` writes to **`wavmark`** (lowercase). If wavmark spectrograms come out empty, that mismatch is the cause.
+4. detection.py - Detects wether the file was watermarked or not.
+5. Detection_metrics.py - Writes the scores
 
 ### Module-level side effects (important)
 
@@ -52,10 +48,6 @@ Consequence: simply importing `main` (or either watermarking module) loads Audio
 - Audio is mono-resampled to 16 kHz before watermarking and before spectral analysis (`TARGET_SR = 16000`, `N_FFT = 1024`, `HOP_LENGTH = 256`, `N_MELS = 128`).
 - Pairing in `spectral_analysis.pair_files` matches by filename stem and expects the suffix `_watermarked.flac`.
 - The `wavmark` watermarker skips files whose output already exists (resumable); the `audioseal` watermarker overwrites unconditionally.
-
-### Dead/legacy code
-
-`src/watermarking.py` is an older duplicate of `audiosealWatermarking.py` (writes to `watermarked_audios/{bonafide,spoofed}` without the `audioseal/` subdir). It is not imported by `main.py`. Prefer editing `audiosealWatermarking.py`.
 
 ## Output directories are gitignored and ephemeral
 
