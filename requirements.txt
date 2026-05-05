@@ -1,6 +1,8 @@
 torch
 torchaudio
 audioseal
+wavmark
 numpy
+soundfile
 librosa
 matplotlib
