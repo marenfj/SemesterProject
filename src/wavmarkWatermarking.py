@@ -4,6 +4,7 @@ import torch
 import torchaudio
 import wavmark
 from pathlib import Path
+from device import get_device
 
 output_directory = Path("watermarked_audios/wavmark")
 (output_directory / "bonafide").mkdir(parents=True, exist_ok=True)
@@ -14,11 +15,16 @@ audiodir_spoofed = Path("datasets/ASVspoof5_partitions/audio_data/spoofed")
 
 target_sample_rate = 16000
 
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+device = get_device()
 model = wavmark.load_model().to(device)
 model.eval()
 
-payload = np.random.choice([0, 1], size=16)
+PAYLOAD_PATH = output_directory / "payload.npy"
+if PAYLOAD_PATH.exists():
+    payload = np.load(PAYLOAD_PATH)
+else:
+    payload = np.random.choice([0, 1], size=16)
+    np.save(PAYLOAD_PATH, payload)
 print("Payload:", payload)
 
 

@@ -2,6 +2,7 @@ from pathlib import Path
 import torch
 import torchaudio
 from audioseal import AudioSeal
+from device import get_device
 
 output_directory = Path("watermarked_audios/audioseal")
 (output_directory / "bonafide").mkdir(parents=True, exist_ok=True)
@@ -11,9 +12,9 @@ detector_name = "audioseal_detector_16bits"
 
 target_sample_rate = 16000
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = get_device()
 
-model = AudioSeal.load_generator(model_name)
+model = AudioSeal.load_generator(model_name).to(device)
 model.eval()
 
 audiodir_bonafide = Path("datasets/ASVspoof5_partitions/audio_data/bonafide")
@@ -32,12 +33,12 @@ def watermark_bonafide_audio() -> None:
             wav = resampler(wav)
             sr = target_sample_rate
 
-        wav = wav.unsqueeze(0)
+        wav = wav.unsqueeze(0).to(device)
         with torch.no_grad():
             watermark_bonafide = model.get_watermark(wav)
             watermarked_bonafide_audio = wav + watermark_bonafide
-        
-        watermarked_bonafide_audio = watermarked_bonafide_audio.squeeze(0)
+
+        watermarked_bonafide_audio = watermarked_bonafide_audio.squeeze(0).cpu()
 
         output_path = output_directory / "bonafide" / f"{audio_file_bonafide.stem}_watermarked.flac"
         bonified_original_vs_watermarked[str(audio_file_bonafide)] = str(output_path)
@@ -48,12 +49,12 @@ def watermark_spoofed_audio() -> None:
     for audio_file_spoofed in audiodir_spoofed.iterdir():
         wav, sr = torchaudio.load(str(audio_file_spoofed))
 
-        wav = wav.unsqueeze(0)
+        wav = wav.unsqueeze(0).to(device)
         with torch.no_grad():
             watermark_spoofed = model.get_watermark(wav)
             watermarked_spoofed_audio = wav + watermark_spoofed
-        
-        watermarked_spoofed_audio = watermarked_spoofed_audio.squeeze(0)
+
+        watermarked_spoofed_audio = watermarked_spoofed_audio.squeeze(0).cpu()
 
         output_path = output_directory / "spoofed" / f"{audio_file_spoofed.stem}_watermarked.flac"
         spoofed_original_vs_watermarked[str(audio_file_spoofed)] = str(output_path)

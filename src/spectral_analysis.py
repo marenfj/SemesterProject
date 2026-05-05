@@ -16,7 +16,7 @@ ORIGINAL_ROOT = Path("datasets/ASVspoof5_partitions/audio_data")
 WATERMARKED_ROOT = Path("watermarked_audios")
 OUTPUT_ROOT = Path("analysis_outputs")
 
-for model_type in ["audioseal", "wavMark"]:
+for model_type in ["audioseal", "wavmark"]:
     for dataset_type in ["bonafide", "spoofed"]:
         (OUTPUT_ROOT / model_type / dataset_type / "logmel").mkdir(parents=True, exist_ok=True)
         (OUTPUT_ROOT / model_type / dataset_type / "stft").mkdir(parents=True, exist_ok=True)
@@ -251,13 +251,13 @@ def print_top_examples(results: list[dict], model_type: str, dataset_type: str, 
 
 def spectral_analysis():
     all_results = []
-    for model_type in ["audioseal", "wavMark"]:
+    for model_type in ["audioseal", "wavmark"]:
         for dataset_type in ["bonafide", "spoofed"]:
             all_results.extend(analyze_dataset_type(model_type, dataset_type))
 
     save_rankings_csv(all_results, OUTPUT_ROOT / "rankings.csv")
 
-    for model_type in ["audioseal", "wavMark"]:
+    for model_type in ["audioseal", "wavmark"]:
         print_top_examples(all_results, model_type, "bonafide", "logmel_score", top_k=3)
         print_top_examples(all_results, model_type, "bonafide", "stft_score", top_k=3)
         print_top_examples(all_results, model_type, "spoofed", "logmel_score", top_k=3)
