@@ -17,8 +17,6 @@ source .venv/bin/activate
 python3.12 src/main.py
 ```
 
-There is no test suite and no linter configured. `test_wavmark.py` at the repo root is an ad-hoc shape-debugging script for the WavMark API, not a real test.
-
 ### Working directory matters
 
 All input/output paths in `src/` are **relative** (`datasets/...`, `watermarked_audios/...`, `analysis_outputs/...`). Run scripts from the repo root, not from `src/`.
