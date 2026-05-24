@@ -4,6 +4,6 @@ __pycache__/
 *.pyc
 .DS_Store
 analysis_outputs/
-#watermarked_audios/
-#datasets/
+watermarked_audios/
+datasets/
 .claude/
