@@ -43,7 +43,7 @@ def apply_filter(wav: torch.Tensor, sr: int, filter_fn, low_hz: float, high_hz: 
     y = wav.squeeze(0).numpy()
     return torch.from_numpy(filter_fn(y, sr, low_hz, high_hz)).unsqueeze(0)
 
-def _iter_pairs(model_dir_name: str, max_files: int = 5):
+def _iter_pairs(model_dir_name: str, max_files: int = 15):
     for dataset_type in ["bonafide", "spoofed"]:
         original_dir = ORIGINAL_ROOT / dataset_type
         watermarked_dir = WATERMARKED_ROOT / model_dir_name / dataset_type
