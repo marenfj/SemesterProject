@@ -5,6 +5,7 @@ import numpy as np
 import torch
 import torchaudio
 from audioseal import AudioSeal
+from scipy.stats import gaussian_kde
 
 from detection import (
     audioseal_score,
@@ -22,6 +23,7 @@ PLAIN_WATERMARKS_DIR = Path("watermarked_audios/plain_watermarks/audioseal/bonaf
 WAVEFORM_PICTURE_DIR = Path("analysis_outputs/audioseal/bonafide/watermark_picture")
 ROC_PATH = Path("analysis_outputs/audioseal/bonafide/ROC_isolated_watermark.png")
 HIST_PATH = Path("analysis_outputs/audioseal/bonafide/score_distribution_isolated_watermark.png")
+EER_DENSITY_PATH = Path("analysis_outputs/eer_density_plot.png")
 NUM_FILES = 100
 DETECTION_THRESHOLD = 0.5
 
@@ -32,6 +34,32 @@ def eer_from_roc(fpr: np.ndarray, tpr: np.ndarray) -> float:
     diffs = fpr - fnr
     idx = int(np.argmin(np.abs(diffs)))
     return float((fpr[idx] + fnr[idx]) / 2.0)
+
+
+def plot_eer_density(rows: list[dict], eer: float, out_path: Path) -> None:
+    orig = np.array([r["score_original"] for r in rows], dtype=float)
+    res = np.array([r["score_residual"] for r in rows], dtype=float)
+
+    x = np.linspace(0.0, 1.0, 500)
+    kde_orig = gaussian_kde(orig, bw_method="scott")
+    kde_res = gaussian_kde(res, bw_method="scott")
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+    ax.plot(x, kde_orig(x), color="red", linewidth=2, label="clean bonafide (original)")
+    ax.plot(x, kde_res(x), color="green", linewidth=2, label="isolated watermark (residual)")
+    ax.axvline(0.5, color="black", linestyle="--", linewidth=1, zorder=5, label=f"treshold = 0.5")
+
+    ax.set_xlabel("Detection score", fontsize=12)
+    ax.set_ylabel("Probability density", fontsize=12)
+    ax.set_title(f"AudioSeal detection score distribution — {len(rows)} bonafide files", fontsize=13)
+    ax.set_xlim(0.0, 1.0)
+    ax.set_ylim(bottom=0)
+    ax.legend(loc="upper center", fontsize=11)
+    ax.grid(axis="y", alpha=0.3)
+    fig.tight_layout()
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out_path, dpi=200, bbox_inches="tight")
+    plt.close(fig)
 
 
 def plot_score_histogram(rows: list[dict], out_path: Path) -> None:
@@ -196,6 +224,9 @@ def run_residual_detection() -> Path:
             ROC_PATH,
         )
         print(f"Wrote ROC plot to {ROC_PATH} (AUC={auc:.4f}, EER={eer:.4f})")
+
+        plot_eer_density(rows, eer, EER_DENSITY_PATH)
+        print(f"Wrote EER density plot to {EER_DENSITY_PATH}")
 
         plot_score_histogram(rows, HIST_PATH)
         print(f"Wrote histogram plot to {HIST_PATH}")
