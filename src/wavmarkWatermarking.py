@@ -29,7 +29,7 @@ print("Payload:", payload)
 
 
 def watermark_bonafide_audio() -> None:
-    for audio_file_bonafide in audiodir_bonafide.iterdir():
+    for audio_file_bonafide in audiodir_bonafide.glob("*.flac"):
 
         output_path = output_directory / "bonafide" / f"{audio_file_bonafide.stem}_watermarked.flac"
         if output_path.exists():
@@ -50,7 +50,7 @@ def watermark_bonafide_audio() -> None:
 
 
 def watermark_spoofed_audio() -> None:
-    for audio_file_spoofed in audiodir_spoofed.iterdir():
+    for audio_file_spoofed in audiodir_spoofed.glob("*.flac"):
 
         output_path = output_directory / "spoofed" / f"{audio_file_spoofed.stem}_watermarked.flac"
         if output_path.exists():

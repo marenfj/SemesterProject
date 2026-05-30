@@ -25,7 +25,7 @@ spoofed_original_vs_watermarked = {}
 
 
 def watermark_bonafide_audio() -> None:
-    for audio_file_bonafide in audiodir_bonafide.iterdir():
+    for audio_file_bonafide in audiodir_bonafide.glob("*.flac"):
 
         wav, sr = torchaudio.load(str(audio_file_bonafide))
         if sr != target_sample_rate:
@@ -46,7 +46,7 @@ def watermark_bonafide_audio() -> None:
 
 
 def watermark_spoofed_audio() -> None:
-    for audio_file_spoofed in audiodir_spoofed.iterdir():
+    for audio_file_spoofed in audiodir_spoofed.glob("*.flac"):
         wav, sr = torchaudio.load(str(audio_file_spoofed))
 
         wav = wav.unsqueeze(0).to(device)
