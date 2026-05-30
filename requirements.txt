@@ -7,3 +7,4 @@ soundfile
 librosa
 matplotlib
 torchcodec
+scipy
