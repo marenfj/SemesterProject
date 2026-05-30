@@ -11,7 +11,7 @@ def main():
     spectral_analysis()
     run_detection()
     detection_metrics()
-    #run_robustness()
+    run_robustness()
 
 if __name__ == "__main__":
     main()
