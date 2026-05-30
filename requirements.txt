@@ -6,4 +6,4 @@ numpy
 soundfile
 librosa
 matplotlib
-torchcode
+torchcodec
