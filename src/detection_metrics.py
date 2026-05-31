@@ -82,14 +82,16 @@ def metrics_for(rows: list[dict], threshold: float) -> dict:
 def plot_roc(curves: dict, title: str, out_path: Path) -> None:
     fig = plt.figure(figsize=(6, 6))
     for name, (fpr, tpr, auc) in curves.items():
-        plt.plot(fpr, tpr, label=f"{name} (AUC={auc:.3f})")
+        plt.plot(fpr, tpr, marker=".", markersize=4, label=f"{name} (AUC={auc:.3f})")
     plt.plot([0, 1], [0, 1], linestyle="--", color="gray", linewidth=1)
     plt.xlabel("False positive rate")
     plt.ylabel("True positive rate")
     plt.title(title)
     plt.legend(loc="lower right")
-    plt.xlim(0, 1)
-    plt.ylim(0, 1.02)
+    # Pad the limits slightly so a perfect curve's vertical leg (FPR=0) and
+    # horizontal leg (TPR=1) don't sit flush against the axis borders.
+    plt.xlim(-0.02, 1.02)
+    plt.ylim(-0.02, 1.02)
     fig.tight_layout()
     fig.savefig(out_path, dpi=200, bbox_inches="tight")
     plt.close(fig)
