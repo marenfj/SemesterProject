@@ -81,7 +81,7 @@ its own without redoing the others.
    `analysis_outputs/detection_metrics.csv`, and renders ROC plots comparing
    AudioSeal vs. WavMark within each split and bonafide vs. spoofed within each model.
 
-Two further experiments run independently of the main pipeline:
+Three further experiments run independently of the main pipeline:
 
 6. **Robustness sweep** — `robustness.py`
    Applies band-pass / band-stop filters across a set of frequency bands to the watermarked
@@ -89,9 +89,23 @@ Two further experiments run independently of the main pipeline:
    `analysis_outputs/robustness_scores.csv` and `robustness_<model>.png` plots.
 
 7. **Residual detection** — `watermark_residual_detection.py`
-   An AudioSeal-only experiment that isolates the pure watermark (`watermarked − original`)
-   and feeds it back to the detector, producing a score histogram and an ROC/EER plot to
-   show how detectable the watermark is in isolation.
+   An AudioSeal-only experiment on bonafide files. Computes the pure watermark signal
+   (`watermarked − original`) for 100 files, saves each residual as a `.flac` file under
+   `watermarked_audios/plain_watermarks/audioseal/bonafide/`, and scores the original,
+   watermarked, and isolated residual through the AudioSeal detector. Reports threshold-based
+   TPR/FPR/accuracy, AUC, and EER, and writes a score histogram, per-file waveform plots, a
+   KDE density plot, and an ROC plot — together showing how detectable the watermark signal
+   is when completely stripped from the host audio.
+
+8. **Transfer attack** — `transferAttack.py`
+   An AudioSeal-only experiment that tests whether a watermark residual extracted from one
+   clip can be transplanted onto a different, unwatermarked clip to fool the detector.
+   Takes the 100 residuals produced by Stage 7, adds each one to a fresh, unwatermarked
+   bonafide clip (files 101–200 in the sorted bonafide set), and scores both the clean target
+   and the forged audio with the AudioSeal detector. Reports attack success rate,
+   false-positive rate, AUC, and EER, and writes a KDE density plot comparing the score
+   distributions of clean versus forged clips. **Requires Stage 7 to have been run first**
+   (the residual `.flac` files must exist on disk).
 
 ## Repository layout
 
@@ -153,6 +167,9 @@ TORCH_COMPILE_DISABLE=1 python3.12 src/detection.py
 TORCH_COMPILE_DISABLE=1 python3.12 src/detection_metrics.py
 TORCH_COMPILE_DISABLE=1 python3.12 src/robustness.py
 TORCH_COMPILE_DISABLE=1 python3.12 src/watermark_residual_detection.py
+
+# Transfer attack (requires watermark_residual_detection.py to have been run first)
+TORCH_COMPILE_DISABLE=1 python3.12 src/transferAttack.py
 ```
 
 Hardware is selected automatically (`src/device.py`): CUDA if available, then Apple Silicon
@@ -172,9 +189,20 @@ Everything lands under `analysis_outputs/`:
 | `roc_models_<dataset>.png`                   | ROC: AudioSeal vs. WavMark within one split                    |
 | `roc_datasets_<model>.png`                   | ROC: bonafide vs. spoofed within one model                     |
 
-The robustness and residual experiments add `robustness_*.png`,
-`robustness_scores.csv`, and per-file residual plots / histograms under
-`analysis_outputs/`.
+The robustness, residual, and transfer-attack experiments add the following under
+`analysis_outputs/`:
+
+| Path                                                                      | Contents                                                                            |
+| ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `robustness_scores.csv`                                                   | per-band detection scores after filtering                                           |
+| `robustness_<model>.png`                                                  | robustness plot per watermarking model                                              |
+| `residual_detection_scores.csv`                                           | per-file scores: original / watermarked / isolated residual + peak and RMS          |
+| `audioseal/bonafide/ROC_isolated_watermark.png`                           | ROC for detecting the isolated watermark vs. clean bonafide audio                   |
+| `audioseal/bonafide/score_distribution_isolated_watermark.png`            | histogram: original / residual / watermarked audio detection scores                 |
+| `eer_density_plot.png`                                                    | KDE density: clean bonafide vs. isolated watermark detection scores                 |
+| `audioseal/bonafide/watermark_picture/<stem>_watermark.png`               | waveform of the isolated AudioSeal watermark per file                               |
+| `transfer_attack_scores.csv`                                              | per-pair scores: `target_stem, residual_stem, score_target, score_forged`           |
+| `transfer_attack_density.png`                                             | KDE density: clean target vs. forged (watermark transferred) detection scores       |
 
 ## Audio processing notes
 
@@ -187,8 +215,9 @@ to `<stem>_watermarked.flac`, and unmatched files are skipped.
 ## Who did what?
 
 **Maren** built the watermarking stages that embed AudioSeal and WavMark into the audio,
-and the attack experiment that filters the watermarked clips and analyses how well the
-watermark survives. **Magnus** built the spectral analysis comparing originals to their
-watermarked twins, and the detection and metrics stages that score and evaluate each
-system. Separating the watermark from the audio (the residual experiment) was done by
-**both** of us.
+the robustness attack that filters the watermarked clips and analyses how well the watermark
+survives across frequency bands, and the transfer attack that extracts watermark residuals
+and transplants them onto unwatermarked clips to test whether the detector can be fooled.
+**Magnus** built the spectral analysis comparing originals to their watermarked twins, and
+the detection and metrics stages that score and evaluate each system. Separating the
+watermark from the audio (the residual experiment) was done by **both** of us.
